@@ -1,14 +1,10 @@
 # hackathon_ocean
 
-해수면 높이와 표층 수온의 수평적 공간 분포로부터 특정 위치에서 수온 수직 분포를 예측하기
+해수면 높이와 표층 수온의 수평적 공간 분포로부터 특정 위치에서 수온 수직 분포를 예측하는 모델 제작이 목표
 
-따라서 이 문제는 수온의 수직 분포와 관련된 해수면 높이, 그리고 표층 수온 사이의 관계를 학습시켜
+따라서 이 문제는 수온의 수직 분포와 관련된 해수면 높이, 그리고 표층 수온 사이의 관계를 학습시켜 해수면 높이와 표층 수온의 수평적 공간 분포로부터 수온의 수직 분포를 예측하는 모델 만들기
 
-해수면 높이와 표층 수온의 수평적 공간 분포로부터 수온의 수직 분포를 예측하는 모델 만들기
-
-해수면 높이의 수평적 공간 분포와 표층 수온의 수평적 공간 분포가 predictor로 주어지며
-
-그 공간 분포 내 특정 위치의 수온 수직 분포가 target
+해수면 높이의 수평적 공간 분포와 표층 수온의 수평적 공간 분포가 predictor로 주어지며 그 공간 분포 내 특정 위치의 수온 수직 분포가 target
 
 ![image](https://user-images.githubusercontent.com/37990408/229995589-b73a6f86-18ff-4232-abd7-3db37968d5ee.png)
 
@@ -20,28 +16,16 @@
 
 ## Data Cleansing & Pre-Processing
 
-sea surface temperature dataset(이하 sst dataset)과 sea level anomaly dataset(이하 sla dataset)에서 
-
-latitude, longitude의 좌표가 서로 다른 것을 확인함 
-
+sea surface temperature dataset(이하 sst dataset)과 sea level anomaly dataset(이하 sla dataset)에서 latitude, longitude의 좌표가 서로 다른 것을 확인함 
 이를 더 균일하게 좌표가 설정된 sst datset의 좌표에 맞춰 sla dataset을 coordinate하기로 결정
 
-기존에 존재하지 않는 좌표에 대해 sla dataset을 만들어야 하기에 이를 위해 scipy의 interpolation을 사용
-
-이 때에 육지를 나타내는 Nan 값은 제외하고 interpolation을 진행
-
+기존에 존재하지 않는 좌표에 대해 sla dataset을 만들어야 하기에 이를 위해 scipy의 interpolation을 사용, 이 때에 육지를 나타내는 Nan 값은 제외하고 interpolation을 진행함.
 interpolation된 sla dataset에 대해 sst dataset에서 육지인 곳을 참고하여 해당 data를 다시 Nan 값으로 처리하는 과정을 거침
 
 
-target이 되는 수온 수직 분포 data의 경우 누락된 값이 많은 것을 확인, 해당 data를 년도별, 월별로 정렬
+target이 되는 수온 수직 분포 data의 경우 누락된 값이 많은 것을 확인, 해당 data를 년도별, 월별로 정렬, 누락된 값의 경우 주어진 data에서 바다의 온도가 영하가 될 수 없다는 점을 참고하여 -1을 할당
 
-누락된 값의 경우 주어진 data에서 바다의 온도가 영하가 될 수 없다는 점을 참고하여 -1을 할당
-
-target의 수직 분포에서 중간에 누락된 값이 많아 loss 계산이 잘 되지 않을 것을 고려하여 
-
-해당 값을 시작 지점인 0m에서 -1인 값을 제외하고 양 끝 지점에서 관측치가 있는 수온 분포에 대해
-
-그 사이의 누락된 값을 numpy의 interpolation을 진행함
+target의 수직 분포에서 중간에 누락된 값이 많아 loss 계산이 잘 되지 않을 것을 고려하여 해당 값을 시작 지점인 0m에서 -1인 값을 제외하고 양 끝 지점에서 관측치가 있는 수온 분포에 대해 그 사이의 누락된 값을 numpy의 interpolation을 진행함
 
 ## Exploratory Data Analysis
 
@@ -91,3 +75,10 @@ loss의 경우 Mean Squared Error loss function을 사용하였으며 label의 �
 <br>interpolate되지 않은 true label에 대한 prediction plot
 ![image](https://user-images.githubusercontent.com/37990408/230000246-26a7b7e8-b6b3-45f2-b405-210aa2e370ae.png)
 <br>결측치가 6개인 true label에 대한 prediction plot
+
+intepolate되지 않은 true label에 대해서는 어느 정도의 경향성을 잘 따라가고 있음을 알 수 있음.
+
+결측치가 존재하는 true label에 대해서는 결측치가 존재하기 전까지의 label에 대해 robust하게 model을 예측하고 있는 모습을 확인할 수 있음.
+
+해당 model을 fitting하는 데에 있어 결측치가 가장 큰 문제점을 야기함. 더 accurate한 target data가 존재한다면 CNN이 더 잘 fitting될 수 있을 것이라 예상 가능함.
+
