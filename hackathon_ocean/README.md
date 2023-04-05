@@ -46,4 +46,48 @@ target의 수직 분포에서 중간에 누락된 값이 많아 loss 계산이 �
 ## Exploratory Data Analysis
 
 해양 표층 수온의 data의 경향성을 확인하기 위해 분기별 sst data를 plot
+![image](https://user-images.githubusercontent.com/37990408/229997553-3e773462-c3a8-48e5-bccb-ecc8c5ca2702.png)
+<br><center>(1993년 2월, 5월, 8월, 11월의 표층 수온 데이터)</center>
 
+해수면 높이 자료의 data의 경향성을 확인하기 위해 분기별 sla data를 plot
+![image](https://user-images.githubusercontent.com/37990408/229997927-c6ab8ec6-fcaf-4824-97dd-fd17173bf175.png)
+<br><center>(1993년 2월, 5월, 8월, 11월의 해수면 높이 데이터)</center>
+
+해양 표층 수온, 해수면 높이 모두 위도, 경도, 날짜에 따라 크게 변한다는 경향성을 확인할 수 있음
+
+target data와 train data사이의 관계를 파악하기 위해 비슷한 sst data에 대해 다른 sla data를 갖는 지점의 수온 수직 분포와 비슷한 sla data에 대해 다른 sst data를 갖는 수온 수직 분포를 엑셀을 통해 확인한 결과
+
+sst의 경우 표층 수온이기 때문에 수온의 수직분포에서 시작점을 결정하며, sla의 경우 수온의 온도 변화 기울기에 영향을 미치는 것을 알 수 있음
+
+## Feature Engineering & Initial Modeling
+
+MLP와 CNN의 총 두가지 method를 시도해 보기로 결정
+
+### MLP
+
+MLP의 경우 feature는 표층 수온, 해수면 높이, 위도, 경도, 월을 feature로 사용하기로 결정, 각각을 flatten하여 vector로 만들어 주었으며 위도, 경도, 월의 경우 normalization을 거침. 각 feature vector를 concat하여 model에 feed함
+
+Hidden dimension이 256인 2 layer MLP를 사용하였음, 마지막에 깊이 data인 14개의 vector가 출력되어야 하기에 Flatten한 후 linear layer를 거치도록 함
+
+### CNN 
+
+CNN의 경우 MLP와 마찬가지로 같은 feature를 사용, 각각을 2\*2 layer로 만들어 주었으며 위도, 경도, 월 layer의 경우 normalization을 거침. 해당 layer를 stack하여 2\*2\*5의 5개의 채널을 갖는 feature layer를 구성함
+
+2D convolution을 사용했으며 Batch normalization과 Relu activation function을 사용, 이 때에 layer의 크기가 2\*2로 작기 때문에 더 작아지지 않도록 padding을 통해 kernel size를 2\*2로 고정시키고, dropout 등의 방법은 사용하지 않음. 마지막에 MLP와 마찬가지로 Flatten한 후 linear layer를 거치도록 함. 
+
+## Model Tuning & Evaluation
+
+Optimizer는 Adam을 이용하였고, scheduler는 CosineAnnealingScheduler를 이용
+
+loss의 경우 Mean Squared Error loss function을 사용하였으며 label의 데이터 전처리 과정에서 interpolate된 길이가 작을수록 weight를 더 크게 주었음. 또한 처음 표층에 가까운 수온 분포에 대해 틀리게 될 경우 어긋나는 양상을 보였기에 처음의 포인트들에 더욱 가중치를 주는 방식을 택함.
+
+## Conclusion & Discussion
+
+학습 결과 MLP를 사용한 model의 경우 6.6123의 validation loss를 가지며 CNN 을 사용한 model의 경우 3.8907를 갖는 것을 확인
+<br>학습한 model은 result 폴더 안에 pt 파일로 저장되어 있음
+
+더 낮은 validation loss를 갖는 CNN model에 대해 true label과 prediction label에 대한 plotting을 진행한 결과는 아래와 같음
+![image](https://user-images.githubusercontent.com/37990408/230000164-1abc41b0-9422-4192-9bdb-d74e2d515fc7.png)
+<br>interpolate되지 않은 true label에 대한 prediction plot
+![image](https://user-images.githubusercontent.com/37990408/230000246-26a7b7e8-b6b3-45f2-b405-210aa2e370ae.png)
+<br>결측치가 6개인 true label에 대한 prediction plot
